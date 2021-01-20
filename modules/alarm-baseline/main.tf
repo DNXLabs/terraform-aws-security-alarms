@@ -21,7 +21,15 @@ data "aws_iam_policy_document" "alarms_policy" {
 
   statement {
     actions = [
-      "sns:*",
+      "SNS:GetTopicAttributes",
+      "SNS:SetTopicAttributes",
+      "SNS:AddPermission",
+      "SNS:RemovePermission",
+      "SNS:DeleteTopic",
+      "SNS:Subscribe",
+      "SNS:ListSubscriptionsByTopic",
+      "SNS:Publish",
+      "SNS:Receive"
     ]
     condition {
       test     = "StringEquals"
