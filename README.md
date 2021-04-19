@@ -22,6 +22,7 @@
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
+| account\_name | Name of this account to identify the alarms | `any` | n/a | yes |
 | alarm\_account\_ids | AWS Account IDs to allow receiving alarms to the SNS Topic | `list` | `[]` | no |
 | alarm\_namespace | The namespace in which all alarms are set up. | `string` | `"CISBenchmark"` | no |
 | alarm\_sns\_topic\_name | The name of the SNS Topic which will be notified when any alarm is performed. | `string` | `"CISAlarm"` | no |
