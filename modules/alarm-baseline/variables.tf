@@ -3,6 +3,10 @@ variable "enabled" {
   default     = true
 }
 
+variable "account_name" {
+  description = "Name of this account to identify the alarms"
+}
+
 variable "alarm_namespace" {
   description = "The namespace in which all alarms are set up."
   default     = "CISBenchmark"

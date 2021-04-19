@@ -1,12 +1,42 @@
 # --------------------------------------------------------------------------------------------------
 # The SNS topic to which CloudWatch alarms send events.
 # --------------------------------------------------------------------------------------------------
+data "aws_caller_identity" "current" {}
 
 resource "aws_sns_topic" "alarms" {
   count             = var.enabled ? 1 : 0
   name              = var.sns_topic_name
-  kms_master_key_id = "alias/aws/sns"
+  kms_master_key_id = aws_kms_key.sns.id # default key does not allow cloudwatch alarms to publish
   tags              = var.tags
+}
+
+data "aws_iam_policy_document" "kms_policy_sns" {
+  statement {
+    sid    = "Enable IAM User Permissions"
+    effect = "Allow"
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
+    }
+    actions = ["kms:*"]
+    resources = ["*"]
+  }
+  statement {
+    actions = [ "kms:Decrypt","kms:GenerateDataKey*"]
+    principals {
+      type = "Service"
+      identifiers = ["cloudwatch.amazonaws.com"]
+    }
+    resources = ["*"]
+    sid = "allow-cloudwatch-kms"
+  }
+}
+
+resource "aws_kms_key" "sns" {
+  deletion_window_in_days = 7
+  description             = "SNS CMK Encryption Key"
+  enable_key_rotation     = true
+  policy                  = data.aws_iam_policy_document.kms_policy_sns.json
 }
 
 resource "aws_sns_topic_policy" "alarms" {
@@ -68,7 +98,7 @@ resource "aws_cloudwatch_log_metric_filter" "unauthorized_api_calls" {
 resource "aws_cloudwatch_metric_alarm" "unauthorized_api_calls" {
   count = var.enabled ? 1 : 0
 
-  alarm_name                = "UnauthorizedAPICalls"
+  alarm_name                = "UnauthorizedAPICalls-${var.account_name}"
   comparison_operator       = "GreaterThanOrEqualToThreshold"
   evaluation_periods        = "1"
   metric_name               = aws_cloudwatch_log_metric_filter.unauthorized_api_calls[0].id
@@ -101,7 +131,7 @@ resource "aws_cloudwatch_log_metric_filter" "no_mfa_console_signin" {
 resource "aws_cloudwatch_metric_alarm" "no_mfa_console_signin" {
   count = var.enabled ? 1 : 0
 
-  alarm_name                = "NoMFAConsoleSignin"
+  alarm_name                = "NoMFAConsoleSignin-${var.account_name}"
   comparison_operator       = "GreaterThanOrEqualToThreshold"
   evaluation_periods        = "1"
   metric_name               = aws_cloudwatch_log_metric_filter.no_mfa_console_signin[0].id
@@ -134,7 +164,7 @@ resource "aws_cloudwatch_log_metric_filter" "root_usage" {
 resource "aws_cloudwatch_metric_alarm" "root_usage" {
   count = var.enabled ? 1 : 0
 
-  alarm_name                = "RootUsage"
+  alarm_name                = "RootUsage-${var.account_name}"
   comparison_operator       = "GreaterThanOrEqualToThreshold"
   evaluation_periods        = "1"
   metric_name               = aws_cloudwatch_log_metric_filter.root_usage[0].id
@@ -166,7 +196,7 @@ resource "aws_cloudwatch_log_metric_filter" "iam_changes" {
 resource "aws_cloudwatch_metric_alarm" "iam_changes" {
   count = var.enabled ? 1 : 0
 
-  alarm_name                = "IAMChanges"
+  alarm_name                = "IAMChanges-${var.account_name}"
   comparison_operator       = "GreaterThanOrEqualToThreshold"
   evaluation_periods        = "1"
   metric_name               = aws_cloudwatch_log_metric_filter.iam_changes[0].id
@@ -199,7 +229,7 @@ resource "aws_cloudwatch_log_metric_filter" "cloudtrail_cfg_changes" {
 resource "aws_cloudwatch_metric_alarm" "cloudtrail_cfg_changes" {
   count = var.enabled ? 1 : 0
 
-  alarm_name                = "CloudTrailCfgChanges"
+  alarm_name                = "CloudTrailCfgChanges-${var.account_name}"
   comparison_operator       = "GreaterThanOrEqualToThreshold"
   evaluation_periods        = "1"
   metric_name               = aws_cloudwatch_log_metric_filter.cloudtrail_cfg_changes[0].id
@@ -232,7 +262,7 @@ resource "aws_cloudwatch_log_metric_filter" "console_signin_failures" {
 resource "aws_cloudwatch_metric_alarm" "console_signin_failures" {
   count = var.enabled ? 1 : 0
 
-  alarm_name                = "ConsoleSigninFailures"
+  alarm_name                = "ConsoleSigninFailures-${var.account_name}"
   comparison_operator       = "GreaterThanOrEqualToThreshold"
   evaluation_periods        = "1"
   metric_name               = aws_cloudwatch_log_metric_filter.console_signin_failures[0].id
@@ -265,7 +295,7 @@ resource "aws_cloudwatch_log_metric_filter" "disable_or_delete_cmk" {
 resource "aws_cloudwatch_metric_alarm" "disable_or_delete_cmk" {
   count = var.enabled ? 1 : 0
 
-  alarm_name                = "DisableOrDeleteCMK"
+  alarm_name                = "DisableOrDeleteCMK-${var.account_name}"
   comparison_operator       = "GreaterThanOrEqualToThreshold"
   evaluation_periods        = "1"
   metric_name               = aws_cloudwatch_log_metric_filter.disable_or_delete_cmk[0].id
@@ -298,7 +328,7 @@ resource "aws_cloudwatch_log_metric_filter" "s3_bucket_policy_changes" {
 resource "aws_cloudwatch_metric_alarm" "s3_bucket_policy_changes" {
   count = var.enabled ? 1 : 0
 
-  alarm_name                = "S3BucketPolicyChanges"
+  alarm_name                = "S3BucketPolicyChanges-${var.account_name}"
   comparison_operator       = "GreaterThanOrEqualToThreshold"
   evaluation_periods        = "1"
   metric_name               = aws_cloudwatch_log_metric_filter.s3_bucket_policy_changes[0].id
@@ -331,7 +361,7 @@ resource "aws_cloudwatch_log_metric_filter" "aws_config_changes" {
 resource "aws_cloudwatch_metric_alarm" "aws_config_changes" {
   count = var.enabled ? 1 : 0
 
-  alarm_name                = "AWSConfigChanges"
+  alarm_name                = "AWSConfigChanges-${var.account_name}"
   comparison_operator       = "GreaterThanOrEqualToThreshold"
   evaluation_periods        = "1"
   metric_name               = aws_cloudwatch_log_metric_filter.aws_config_changes[0].id
@@ -364,7 +394,7 @@ resource "aws_cloudwatch_log_metric_filter" "security_group_changes" {
 resource "aws_cloudwatch_metric_alarm" "security_group_changes" {
   count = var.enabled ? 1 : 0
 
-  alarm_name                = "SecurityGroupChanges"
+  alarm_name                = "SecurityGroupChanges-${var.account_name}"
   comparison_operator       = "GreaterThanOrEqualToThreshold"
   evaluation_periods        = "1"
   metric_name               = aws_cloudwatch_log_metric_filter.security_group_changes[0].id
@@ -397,7 +427,7 @@ resource "aws_cloudwatch_log_metric_filter" "nacl_changes" {
 resource "aws_cloudwatch_metric_alarm" "nacl_changes" {
   count = var.enabled ? 1 : 0
 
-  alarm_name                = "NACLChanges"
+  alarm_name                = "NACLChanges-${var.account_name}"
   comparison_operator       = "GreaterThanOrEqualToThreshold"
   evaluation_periods        = "1"
   metric_name               = aws_cloudwatch_log_metric_filter.nacl_changes[0].id
@@ -430,7 +460,7 @@ resource "aws_cloudwatch_log_metric_filter" "network_gw_changes" {
 resource "aws_cloudwatch_metric_alarm" "network_gw_changes" {
   count = var.enabled ? 1 : 0
 
-  alarm_name                = "NetworkGWChanges"
+  alarm_name                = "NetworkGWChanges-${var.account_name}"
   comparison_operator       = "GreaterThanOrEqualToThreshold"
   evaluation_periods        = "1"
   metric_name               = aws_cloudwatch_log_metric_filter.network_gw_changes[0].id
@@ -463,7 +493,7 @@ resource "aws_cloudwatch_log_metric_filter" "route_table_changes" {
 resource "aws_cloudwatch_metric_alarm" "route_table_changes" {
   count = var.enabled ? 1 : 0
 
-  alarm_name                = "RouteTableChanges"
+  alarm_name                = "RouteTableChanges-${var.account_name}"
   comparison_operator       = "GreaterThanOrEqualToThreshold"
   evaluation_periods        = "1"
   metric_name               = aws_cloudwatch_log_metric_filter.route_table_changes[0].id
@@ -496,7 +526,7 @@ resource "aws_cloudwatch_log_metric_filter" "vpc_changes" {
 resource "aws_cloudwatch_metric_alarm" "vpc_changes" {
   count = var.enabled ? 1 : 0
 
-  alarm_name                = "VPCChanges"
+  alarm_name                = "VPCChanges-${var.account_name}"
   comparison_operator       = "GreaterThanOrEqualToThreshold"
   evaluation_periods        = "1"
   metric_name               = aws_cloudwatch_log_metric_filter.vpc_changes[0].id
