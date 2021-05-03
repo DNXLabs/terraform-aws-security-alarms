@@ -6,11 +6,12 @@ data "aws_caller_identity" "current" {}
 resource "aws_sns_topic" "alarms" {
   count             = var.enabled ? 1 : 0
   name              = var.sns_topic_name
-  kms_master_key_id = aws_kms_key.sns.id # default key does not allow cloudwatch alarms to publish
+  kms_master_key_id = aws_kms_key.sns[0].id # default key does not allow cloudwatch alarms to publish
   tags              = var.tags
 }
 
 data "aws_iam_policy_document" "kms_policy_sns" {
+  count = var.enabled ? 1 : 0
   statement {
     sid    = "Enable IAM User Permissions"
     effect = "Allow"
@@ -33,10 +34,11 @@ data "aws_iam_policy_document" "kms_policy_sns" {
 }
 
 resource "aws_kms_key" "sns" {
+  count                   = var.enabled ? 1 : 0
   deletion_window_in_days = 7
   description             = "SNS CMK Encryption Key"
   enable_key_rotation     = true
-  policy                  = data.aws_iam_policy_document.kms_policy_sns.json
+  policy                  = data.aws_iam_policy_document.kms_policy_sns[0].json
 }
 
 resource "aws_sns_topic_policy" "alarms" {
