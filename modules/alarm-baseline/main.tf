@@ -19,17 +19,17 @@ data "aws_iam_policy_document" "kms_policy_sns" {
       type        = "AWS"
       identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
     }
-    actions = ["kms:*"]
+    actions   = ["kms:*"]
     resources = ["*"]
   }
   statement {
-    actions = [ "kms:Decrypt","kms:GenerateDataKey*"]
+    actions = ["kms:Decrypt", "kms:GenerateDataKey*"]
     principals {
-      type = "Service"
+      type        = "Service"
       identifiers = ["cloudwatch.amazonaws.com"]
     }
     resources = ["*"]
-    sid = "allow-cloudwatch-kms"
+    sid       = "allow-cloudwatch-kms"
   }
 }
 
