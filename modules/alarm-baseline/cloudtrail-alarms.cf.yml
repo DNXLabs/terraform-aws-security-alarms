@@ -1,0 +1,69 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: "Cloudtrail Alarms (rev:2)"
+
+#====================================================================================================
+Parameters:
+#====================================================================================================
+  CloudTrailLogGroupName:
+    Type: String
+    Description: CloudTrail log group name when CloudTrail is already provisioned
+  AlarmNotificationTopic:
+    Type: String
+    Description: SNS Notification Topic to send alarms to
+
+#====================================================================================================
+Resources:
+#====================================================================================================
+
+  RootAccountUsageMetricFilter:
+    Type: 'AWS::Logs::MetricFilter'
+    Properties:
+      LogGroupName: !Ref CloudTrailLogGroupName
+      FilterPattern: '{$.userIdentity.type="Root" && $.userIdentity.invokedBy NOT EXISTS && $.eventType !="AwsServiceEvent"}'
+      MetricTransformations:
+        - MetricNamespace: CloudTrailMetrics
+          MetricName: RootAccountUsageEventCount
+          MetricValue: '1'
+
+  RootAccountUsageAlarm:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmName: RootAccountUsage
+      AlarmDescription: (CIS-3.3) Alarms when Root Account is used
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+      MetricName: RootAccountUsageEventCount
+      Namespace: CloudTrailMetrics
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 1
+      Period: 300
+      Statistic: Sum
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+  NoMFALoginUsageMetricFilter:
+    Type: 'AWS::Logs::MetricFilter'
+    Properties:
+      LogGroupName: !Ref CloudTrailLogGroupName
+      FilterPattern: '{ ($.eventName ="ConsoleLogin") && ($.additionalEventData.MFAUsed != "Yes") }'
+      MetricTransformations:
+        - MetricNamespace: CloudTrailMetrics
+          MetricName: NoMFALoginEventCount
+          MetricValue: '1'
+
+  NoMFALoginUsageAlarm:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmName: NoMFALogin
+      AlarmDescription: Monitoring for single-factor console logins will increase visibility into accounts that are not protected by MFA.
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+      MetricName: NoMFALoginEventCount
+      Namespace: CloudTrailMetrics
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 1
+      Period: 300
+      Statistic: Sum
+      Threshold: 1
+      TreatMissingData: notBreaching
