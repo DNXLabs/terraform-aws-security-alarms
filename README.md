@@ -24,6 +24,7 @@
 |------|-------------|------|---------|:--------:|
 | account\_name | Name of this account to identify the alarms | `any` | n/a | yes |
 | alarm\_account\_ids | AWS Account IDs to allow receiving alarms to the SNS Topic | `list` | `[]` | no |
+| alarm\_mode | Version of alarms to use. 'light' or 'full' available | `string` | `"light"` | no |
 | alarm\_namespace | The namespace in which all alarms are set up. | `string` | `"CISBenchmark"` | no |
 | alarm\_sns\_topic\_name | The name of the SNS Topic which will be notified when any alarm is performed. | `string` | `"CISAlarm"` | no |
 | cloudtrail\_log\_group\_name | The name of Cloudtrail log group. (Default is <org-name>-cloudtrail) | `string` | `""` | no |
