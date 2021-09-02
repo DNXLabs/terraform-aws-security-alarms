@@ -27,6 +27,11 @@ variable "alarm_account_ids" {
   description = "AWS Account IDs to allow receiving alarms to the SNS Topic"
 }
 
+variable "alarm_mode" {
+  default     = "light"
+  description = "Version of alarms to use. 'light' or 'full' available"
+}
+
 variable "cloudtrail_log_group_name" {
   description = "The name of Cloudtrail log group. (Default is <org-name>-cloudtrail)"
   default     = ""

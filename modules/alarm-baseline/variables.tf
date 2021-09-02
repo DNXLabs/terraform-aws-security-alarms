@@ -25,6 +25,11 @@ variable "alarm_account_ids" {
   default = []
 }
 
+variable "alarm_mode" {
+  default     = "light"
+  description = "Version of alarms to use. 'light' or 'full' available"
+}
+
 variable "tags" {
   description = "Specifies object tags key and value. This applies to all resources created by this module."
   default = {

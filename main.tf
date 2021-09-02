@@ -11,6 +11,7 @@ module "alarm_baseline" {
   cloudtrail_log_group_name = local.cloudtrail_log_group_name
   sns_topic_name            = var.alarm_sns_topic_name
   alarm_account_ids         = var.alarm_account_ids
+  alarm_mode                = var.alarm_mode
   tags                      = var.tags
 }
 

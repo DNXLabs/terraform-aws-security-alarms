@@ -9,8 +9,8 @@ resource "random_string" "cloudtrail_alarm_suffix" {
 
 resource "aws_cloudformation_stack" "cloudtrail_alarm" {
   count         = var.enabled ? 1 : 0
-  name          = "cloudtrail-alarm-slack-${random_string.cloudtrail_alarm_suffix[0].result}"
-  template_body = file("${path.module}/cloudtrail-alarms.cf.yml")
+  name          = "cloudtrail-alarm-${random_string.cloudtrail_alarm_suffix[0].result}"
+  template_body = var.alarm_mode == "full" ? file("${path.module}/cloudtrail-alarms-full.cf.json") : file("${path.module}/cloudtrail-alarms-light.cf.yml")
 
   parameters = {
     CloudTrailLogGroupName = var.cloudtrail_log_group_name
