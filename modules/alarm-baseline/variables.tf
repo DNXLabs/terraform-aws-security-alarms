@@ -21,6 +21,11 @@ variable "sns_topic_name" {
   default     = "CISAlarm"
 }
 
+variable "lambda_alarm_name" {
+  description = "The name of the lambda which will be notified with a custom message when any alarm is performed."
+  default     = "lambda_alarm_notification"
+}
+
 variable "alarm_account_ids" {
   default = []
 }
