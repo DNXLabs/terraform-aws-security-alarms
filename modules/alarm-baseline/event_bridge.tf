@@ -1,7 +1,7 @@
 resource "aws_cloudwatch_event_rule" "alarm_notification" {
-  name        = "daily_enforce_bucket_kms_encryption"
-  description = "run everyday"
-  is_enabled = false
+  name        = "cloudtrail_alarm_custom_notifications"
+  description = "Will be notified with a custom message when any alarm is performed"
+  is_enabled = true
 
   event_pattern = <<PATTERN
   {
@@ -21,8 +21,8 @@ resource "aws_cloudwatch_event_rule" "alarm_notification" {
   }
   PATTERN
 }
-resource "aws_cloudwatch_event_target" "sns" {
+resource "aws_cloudwatch_event_target" "lambda_target" {
   rule      = aws_cloudwatch_event_rule.alarm_notification.name
   target_id = "NotifyLambda"
-  arn       = aws_sns_topic.aws_logins.arn
+  arn       = aws_lambda_function.lambda.arn
 }
