@@ -13,14 +13,14 @@ var hookUrl
 exports.handler = function (event, context) {
     var alarmName = event.detail.alarmName;
     var time = event.time;
-
+    console.info(event)
     processEvent(event, context);
 
 
 };
 
-var handleCloudWatch = function (data, event, alarm) {
-    sendEmail(generateEmailContent(data, alarm))
+var handleCloudWatch = function (data, alarm, events) {
+    sendEmail(generateEmailContent(data, alarm, events))
 }
 
 
@@ -68,9 +68,10 @@ var processEvent = function (event, context) {
     var messageNotification = null
 
     getWatchlogData(alarmName, time, function (err, data, alarm) {
-        if (config.metrics.SecurityGroupChanges.match_events_text.includes(data.eventName)) {
-            console.log(`processing ${data.eventName} notification`)
-            messageNotification = handleCloudWatch(data, event, alarm)
+        clouldTrail = JSON.parse(data.events[0].message);
+        if (config.metrics.SecurityGroupChanges.match_events_text.includes(clouldTrail.eventName)) {
+            messageNotification = handleCloudWatch(clouldTrail, alarm, data.events)
+
         } else {
             console.error(`Event:${data.eventName} not found`)
             // messageNotification = handleCatchAll(event, context)
@@ -84,13 +85,15 @@ function getWatchlogData(alarmName, time, fn) {
     getAlarm(alarmName, function (err, data) {
         if (err) { console.log(err, err.stack) } // an error occurred
         else {
-            const metrics = data.MetricAlarms[0]
+            const alarms = data.MetricAlarms[0]
             getMetricsFilter(data.MetricAlarms[0].MetricName, data.MetricAlarms[0].Namespace, function (err, data) {
                 if (err) console.log('Error is:', err);
                 else {
+                    const metrics = data.metricFilters[0]
+                    console.log(data)
                     getFilterLogEvents(data.metricFilters[0].logGroupName, data.metricFilters[0].filterPattern, time, function (err, data) {
                         console.log(data)
-                        fn(err, JSON.parse(data.events[0].message), metrics)
+                        fn(err, data, alarms)
                     })
                 }
             })
@@ -117,15 +120,15 @@ function getMetricsFilter(metricName, metricNamespace, fn) {
 
 function getFilterLogEvents(logGroupName, filterPattern, time, fn) {
     var timestamp = Date.parse(time);
-    // var offset = new Date().getTime()
-    var offset = Date.parse("2022-04-08T00:59:11Z")
+    var offset = 180000;
+    // var offset = Date.parse("2022-04-08T00:59:11Z")
 
 
     var parameters = {
         'logGroupName': logGroupName,
         'filterPattern': filterPattern,
-        'startTime': timestamp,
-        'endTime': offset
+        'startTime': timestamp - offset,
+        'endTime': timestamp
     };
     cwl.filterLogEvents(parameters, fn);
 }
@@ -147,8 +150,9 @@ var sendEmail = function (structureMessage, callback) {
     });
 }
 
-function generateEmailContent(clouldTrail, alarm) {
+function generateEmailContent(clouldTrail, alarm, events) {
     var date = new Date(clouldTrail.eventTime);
+    console.log(`processing ${clouldTrail.eventName} notification`)
 
     customMessage = `You are receiving this email because your Amazon CloudWatch Alarm "${alarm.AlarmName}" in the ${clouldTrail.awsRegion} region has entered the ${alarm.StateValue} state, because ${alarm.StateReason}  at ${alarm.StateUpdatedTimestamp}
     
@@ -159,7 +163,20 @@ function generateEmailContent(clouldTrail, alarm) {
     - Name: ${alarm.AlarmName}
     - Description: ${alarm.AlarmDescription}
     - AWS Account: ${clouldTrail.userIdentity.accountId}
-    - Alarm Arn: ${alarm.AlarmArn}`;
+    - Alarm Arn: ${alarm.AlarmArn}
+    
+    View the cloudtrail log in the AWS Console:`;
+
+    var test = "";
+    events.forEach(element => {
+        console.log(element)
+        elementMessage = JSON.parse(element.message)
+        test = test + `
+        - Event Name: ${elementMessage.eventName}
+        https://${clouldTrail.awsRegion}.console.aws.amazon.com/cloudtrail/home?region=${clouldTrail.awsRegion}#/events/${elementMessage.eventID}\n`
+    });
+
+    customMessage = customMessage + test;
 
     return { message: customMessage, subject: `ALARM: "${alarm.AlarmName}" in ${clouldTrail.awsRegion}` };
 }
