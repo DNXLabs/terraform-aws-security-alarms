@@ -1,6 +1,6 @@
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: "Cloudtrail Alarms (rev:2)"
+Description: "Cloudtrail Alarms (rev:3)"
 
 #====================================================================================================
 Parameters:
@@ -25,6 +25,17 @@ Resources:
         - MetricNamespace: CloudTrailMetrics
           MetricName: RootAccountUsageEventCount
           MetricValue: '1'
+  
+  RootAccountUsageLogInsight:
+    Type: 'AWS::Logs::QueryDefinition'
+    Properties:
+      LogGroupNames:
+        - !Ref CloudTrailLogGroupName
+      Name: RootAccountUsage
+      QueryString: |
+        fields @timestamp, userIdentity.principalId 
+        | sort @timestamp desc 
+        | filter userIdentity.type="Root" and ispresent(userIdentity.invokedBy) and eventType !="AwsServiceEvent"
 
   RootAccountUsageAlarm:
     Type: 'AWS::CloudWatch::Alarm'
@@ -46,11 +57,22 @@ Resources:
     Type: 'AWS::Logs::MetricFilter'
     Properties:
       LogGroupName: !Ref CloudTrailLogGroupName
-      FilterPattern: '{ ($.eventName ="ConsoleLogin") && ($.additionalEventData.MFAUsed != "Yes") }'
+      FilterPattern: '{ ($.eventName ="ConsoleLogin") && ($.additionalEventData.MFAUsed != "Yes") && ($.userIdentity.type != "AssumedRole") }'
       MetricTransformations:
         - MetricNamespace: CloudTrailMetrics
           MetricName: NoMFALoginEventCount
           MetricValue: '1'
+  
+  NoMFALoginUsageLogInsight:
+    Type: 'AWS::Logs::QueryDefinition'
+    Properties:
+      LogGroupNames:
+        - !Ref CloudTrailLogGroupName
+      Name: NoMFALoginUsage
+      QueryString: |
+        fields @timestamp, userIdentity.principalId 
+        | sort @timestamp desc 
+        | filter eventName ="ConsoleLogin" and additionalEventData.MFAUsed != "Yes" and userIdentity.type != "AssumedRole"
 
   NoMFALoginUsageAlarm:
     Type: 'AWS::CloudWatch::Alarm'
